@@ -13,6 +13,6 @@ public partial class MainPage : ContentPage
 
     private void OnDateSelected(object sender, DateChangedEventArgs e)
     {
-        // Не обязательно, но можно что-то сделать дополнительно
+        
     }
 }
