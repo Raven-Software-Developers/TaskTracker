@@ -14,30 +14,41 @@ public partial class MainViewModel : ObservableObject
     private string newTaskDescription = string.Empty;
 
     [ObservableProperty]
+    private DateTime selectedDate = DateTime.Today;
+
+    [ObservableProperty]
+    private string pageTitle = "Задачи на сегодня";
+
+    [ObservableProperty]
     private ObservableCollection<DailyTask> tasks = new();
 
     public MainViewModel(ITaskRepository taskRepository)
     {
         _taskRepository = taskRepository;
-        LoadTasksCommand.Execute(null); // Загружаем задачи при инициализации
+        SelectedDate = DateTime.Today;
+        LoadTasksCommand.Execute(null); // Первая загрузка
+    }
+
+    partial void OnSelectedDateChanged(DateTime value)
+    {
+        UpdatePageTitle();
+        LoadTasksCommand.Execute(null); // Загрузка при смене даты
+    }
+
+    private void UpdatePageTitle()
+    {
+        PageTitle = $"Задачи на {SelectedDate:dd MMMM yyyy}";
     }
 
     [RelayCommand]
-    public async Task LoadTasksAsync()
+    private async Task LoadTasksAsync()
     {
         try
         {
-            var todayTasks = await _taskRepository.GetTasksForTodayAsync();
-
-            // НЕ заменяем коллекцию целиком, а очищаем и добавляем
+            var dateTasks = await _taskRepository.GetTasksForDateAsync(SelectedDate);
             Tasks.Clear();
-            foreach (var task in todayTasks)
-            {
+            foreach (var task in dateTasks)
                 Tasks.Add(task);
-            }
-
-            // Для надёжности — вызов OnPropertyChanged
-            OnPropertyChanged(nameof(Tasks));
         }
         catch (Exception ex)
         {
@@ -48,8 +59,7 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task AddTaskAsync()
     {
-        if (string.IsNullOrWhiteSpace(NewTaskDescription))
-            return;
+        if (string.IsNullOrWhiteSpace(NewTaskDescription)) return;
 
         try
         {
@@ -57,35 +67,51 @@ public partial class MainViewModel : ObservableObject
             {
                 Description = NewTaskDescription.Trim(),
                 IsCompleted = false,
-                Date = DateTime.Today
+                Date = SelectedDate // ← Важно! Добавляем на выбранную дату
             };
 
             await _taskRepository.AddTaskAsync(newTask);
-
             NewTaskDescription = string.Empty;
-            await LoadTasksAsync(); // Обновляем список
+            await LoadTasksAsync();
         }
         catch (Exception ex)
         {
-            await Application.Current.MainPage.DisplayAlert("Ошибка", $"Не удалось добавить задачу: {ex.Message}", "OK");
+            await Application.Current.MainPage.DisplayAlert("Ошибка", ex.Message, "OK");
         }
     }
 
     [RelayCommand]
     private async Task ToggleCompletedAsync(DailyTask task)
     {
-        if (task == null)
-            return;
+        if (task == null) return;
 
         try
         {
             task.IsCompleted = !task.IsCompleted;
             await _taskRepository.UpdateTaskAsync(task);
-            await LoadTasksAsync(); // Обновляем список для актуального отображения
+            await LoadTasksAsync();
         }
         catch (Exception ex)
         {
-            await Application.Current.MainPage.DisplayAlert("Ошибка", $"Не удалось обновить задачу: {ex.Message}", "OK");
+            await Application.Current.MainPage.DisplayAlert("Ошибка", ex.Message, "OK");
         }
+    }
+
+    [RelayCommand]
+    private void SetToday()
+    {
+        SelectedDate = DateTime.Today;
+    }
+
+    [RelayCommand]
+    private void SetYesterday()
+    {
+        SelectedDate = DateTime.Today.AddDays(-1);
+    }
+
+    [RelayCommand]
+    private void SetTomorrow()
+    {
+        SelectedDate = DateTime.Today.AddDays(1);
     }
 }

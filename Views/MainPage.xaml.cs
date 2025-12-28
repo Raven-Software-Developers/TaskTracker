@@ -5,17 +5,14 @@ namespace TaskTracker.Views;
 
 public partial class MainPage : ContentPage
 {
-    private readonly MainViewModel _viewModel;
-
     public MainPage()
     {
         InitializeComponent();
-        _viewModel = new MainViewModel(new MySqlTaskRepository());
-        BindingContext = _viewModel;
+        BindingContext = new MainViewModel(new MySqlTaskRepository());
     }
 
-    private async void OnAppeared(object sender, EventArgs e)
+    private void OnDateSelected(object sender, DateChangedEventArgs e)
     {
-        await _viewModel.LoadTasksAsync();  // Принудительная загрузка при открытии
+        // Не обязательно, но можно что-то сделать дополнительно
     }
 }

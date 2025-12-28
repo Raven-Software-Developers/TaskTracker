@@ -1,5 +1,5 @@
 ﻿using MySqlConnector;
-using TaskTracker.Models; // Здесь теперь DailyTask
+using TaskTracker.Models;
 
 namespace TaskTracker.Repositories;
 
@@ -7,15 +7,14 @@ public class MySqlTaskRepository : ITaskRepository
 {
     private const string ConnectionString = "Server=127.0.0.1;Port=3306;Database=task_tracker;User Id=root;Password=root";
 
-    public async Task<List<DailyTask>> GetTasksForTodayAsync()
+    public async Task<List<DailyTask>> GetTasksForDateAsync(DateTime date)
     {
         var tasks = new List<DailyTask>();
         using var connection = new MySqlConnection(ConnectionString);
         await connection.OpenAsync();
 
-        var today = DateTime.Today.ToString("yyyy-MM-dd");
-        using var command = new MySqlCommand("SELECT * FROM Tasks WHERE Date = @Date;", connection);
-        command.Parameters.AddWithValue("@Date", today);
+        using var command = new MySqlCommand("SELECT * FROM Tasks WHERE Date = @Date ORDER BY Id;", connection);
+        command.Parameters.AddWithValue("@Date", date.ToString("yyyy-MM-dd"));
 
         using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
