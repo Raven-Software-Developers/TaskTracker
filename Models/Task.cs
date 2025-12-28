@@ -10,5 +10,7 @@ namespace TaskTracker.Models
         public string Description { get; set; } = string.Empty;
         public bool IsCompleted { get; set; }
         public DateTime Date { get; set; }
+
+        public TaskCategory Category { get; set; } = TaskCategory.None;
     }
 }

@@ -3,12 +3,17 @@ using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using TaskTracker.Models;
 using TaskTracker.Repositories;
+using TaskTracker.Extensions;
 
 namespace TaskTracker.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
     private readonly ITaskRepository _taskRepository;
+
+    public List<TaskCategory> Categories { get; } = Enum.GetValues(typeof(TaskCategory))
+                                                         .Cast<TaskCategory>()
+                                                         .ToList();
 
     [ObservableProperty]
     private string newTaskDescription = string.Empty;
@@ -21,6 +26,12 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private ObservableCollection<DailyTask> tasks = new();
+
+    [ObservableProperty]
+    private TaskCategory selectedCategory = TaskCategory.None;
+
+    [ObservableProperty]
+    private TaskCategory? filteredCategory;
 
     public MainViewModel(ITaskRepository taskRepository)
     {
@@ -35,6 +46,11 @@ public partial class MainViewModel : ObservableObject
         LoadTasksCommand.Execute(null); 
     }
 
+    partial void OnFilteredCategoryChanged(TaskCategory? value)
+    {
+        LoadTasksCommand.Execute(null);
+    }
+
     private void UpdatePageTitle()
     {
         PageTitle = $"Задачи на {SelectedDate:dd MMMM yyyy}";
@@ -43,17 +59,16 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task LoadTasksAsync()
     {
-        try
+        var dateTasks = await _taskRepository.GetTasksForDateAsync(SelectedDate);
+
+        if (filteredCategory.HasValue)
         {
-            var dateTasks = await _taskRepository.GetTasksForDateAsync(SelectedDate);
-            Tasks.Clear();
-            foreach (var task in dateTasks)
-                Tasks.Add(task);
+            dateTasks = dateTasks.Where(t => t.Category == filteredCategory.Value).ToList();
         }
-        catch (Exception ex)
-        {
-            await Application.Current.MainPage.DisplayAlert("Ошибка", ex.Message, "OK");
-        }
+
+        Tasks.Clear();
+        foreach (var task in dateTasks)
+            Tasks.Add(task);
     }
 
     [RelayCommand]
@@ -67,7 +82,8 @@ public partial class MainViewModel : ObservableObject
             {
                 Description = NewTaskDescription.Trim(),
                 IsCompleted = false,
-                Date = SelectedDate 
+                Date = SelectedDate,
+                Category = SelectedCategory
             };
 
             await _taskRepository.AddTaskAsync(newTask);
