@@ -26,13 +26,13 @@ public partial class MainViewModel : ObservableObject
     {
         _taskRepository = taskRepository;
         SelectedDate = DateTime.Today;
-        LoadTasksCommand.Execute(null); // Первая загрузка
+        LoadTasksCommand.Execute(null); 
     }
 
     partial void OnSelectedDateChanged(DateTime value)
     {
         UpdatePageTitle();
-        LoadTasksCommand.Execute(null); // Загрузка при смене даты
+        LoadTasksCommand.Execute(null); 
     }
 
     private void UpdatePageTitle()
@@ -67,7 +67,7 @@ public partial class MainViewModel : ObservableObject
             {
                 Description = NewTaskDescription.Trim(),
                 IsCompleted = false,
-                Date = SelectedDate // ← Важно! Добавляем на выбранную дату
+                Date = SelectedDate 
             };
 
             await _taskRepository.AddTaskAsync(newTask);
